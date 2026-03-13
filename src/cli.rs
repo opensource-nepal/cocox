@@ -5,9 +5,9 @@ use clap::Parser;
 #[command(about = "A Conventional Commitlint binary tool")]
 #[command(version)]
 pub struct Cli {
-    #[arg(long)]
-    pub message: String,
+    #[arg(conflicts_with = "file", required_unless_present = "file")]
+    pub message: Option<String>,
 
-    #[arg(long)]
-    pub file: std::path::PathBuf,
+    #[arg(long, conflicts_with = "message", required_unless_present = "message")]
+    pub file: Option<String>,
 }
