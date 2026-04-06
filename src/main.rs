@@ -1,6 +1,7 @@
 mod cli;
 mod command;
 mod constants;
+mod git_helpers;
 mod linter;
 mod messages;
 

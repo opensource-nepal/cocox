@@ -1,4 +1,5 @@
 use crate::cli::Cli;
+use crate::git_helpers::get_commit_message_from_hash;
 use crate::linter::lint_commit_message;
 use crate::messages::{VALIDATION_FAILED, VALIDATION_SUCCESSFUL};
 use anyhow::{Context, Result};
@@ -26,6 +27,9 @@ pub fn run(args: Cli) -> Result<()> {
     } else if let Some(file) = &args.file {
         // commit msg file
         let msg = read_file(file)?;
+        handle_commit_message(&msg);
+    } else if let Some(hash) = &args.hash {
+        let msg = get_commit_message_from_hash(hash)?;
         handle_commit_message(&msg);
     } else {
         unreachable!("invalid option is handle by clap");
