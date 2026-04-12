@@ -13,9 +13,9 @@ pub struct Cli {
     #[arg()]
     pub message: Option<String>,
 
-    #[arg(short, long)]
+    #[arg(long)]
     pub file: Option<String>,
 
-    #[arg(short, long)]
+    #[arg(long)]
     pub hash: Option<String>,
 }
