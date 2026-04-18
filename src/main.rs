@@ -4,6 +4,7 @@ mod constants;
 mod git_helpers;
 mod linter;
 mod messages;
+mod utils;
 
 use anyhow::Result;
 use clap::Parser;
