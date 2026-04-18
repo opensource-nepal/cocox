@@ -6,7 +6,7 @@ use clap::{ArgGroup, Parser};
 #[command(version)]
 #[command(group(
     ArgGroup::new("input")
-        .args(["message", "file", "hash"])
+        .args(["message", "file", "hash", "from_hash"])
         .required(true)
         .multiple(false)))]
 pub struct Cli {
@@ -18,4 +18,10 @@ pub struct Cli {
 
     #[arg(long)]
     pub hash: Option<String>,
+
+    #[arg(long)]
+    pub from_hash: Option<String>,
+
+    #[arg(long, requires = "from_hash", default_value = "HEAD")]
+    pub to_hash: Option<String>,
 }
