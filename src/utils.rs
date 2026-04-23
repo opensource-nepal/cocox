@@ -14,6 +14,10 @@ pub fn is_ignored(message: &str) -> bool {
     return false;
 }
 
+pub fn is_empty(msg: &str) -> bool {
+    return msg.trim().is_empty();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
