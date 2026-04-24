@@ -29,6 +29,7 @@ mod tests {
         assert_eq!(is_ignored("bump cocox from v1.0.0 to 1.1.0"), true);
         assert_eq!(is_ignored("Merge branch 'feature' into 'main'"), true)
     }
+
     #[test]
     fn test_is_empty() {
         assert!(is_empty("")); // empty string
