@@ -20,7 +20,6 @@ fn handle_commit_message(msg: &str) {
     }
 
     if is_ignored(msg) {
-        println!("Commit Message Ignored");
         return;
     }
 
