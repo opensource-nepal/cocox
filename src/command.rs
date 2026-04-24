@@ -12,7 +12,10 @@ fn read_file(file: &String) -> Result<String> {
 
 fn handle_commit_message(msg: &str) {
     if is_empty(msg) {
-        eprintln!("{}: Can't Lint empty message", VALIDATION_FAILED);
+        eprintln!(
+            "{}: Aborting commit due to empty commit message",
+            VALIDATION_FAILED
+        );
         std::process::exit(1);
     }
 
