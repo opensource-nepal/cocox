@@ -48,7 +48,7 @@ fn handle_multiple_commit_messages(messages: &[String]) {
         let success = lint_commit_message(msg);
         if !success {
             has_failure = true;
-            continue;
+            // TODO: Log proper error for individual message
         }
     }
 
