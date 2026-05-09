@@ -44,6 +44,7 @@ fn handle_multiple_commit_messages(messages: &[String]) {
         if is_ignored(msg) {
             continue;
         }
+
         let success = lint_commit_message(msg);
         if !success {
             has_failure = true;
@@ -52,12 +53,11 @@ fn handle_multiple_commit_messages(messages: &[String]) {
     }
 
     if has_failure {
-        println!("\n{}", VALIDATION_SUCCESSFUL);
-        return;
+        eprintln!("{}", VALIDATION_FAILED);
+        std::process::exit(1);
     }
 
-    eprintln!("{}", VALIDATION_FAILED);
-    std::process::exit(1);
+    println!("{}", VALIDATION_SUCCESSFUL);
 }
 
 pub fn run(args: Cli) -> Result<()> {
