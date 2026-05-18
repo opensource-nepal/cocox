@@ -1,6 +1,6 @@
 [package]
 name = "cocox"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2024"
 license = "GPL-3.0"
 repository = "https://github.com/opensource-nepal/cocox"
@@ -20,3 +20,8 @@ anyhow = "1.0"
 assert_cmd = "2"
 predicates = "3"
 tempfile = "3"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"

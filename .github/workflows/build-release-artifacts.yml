@@ -1,0 +1,200 @@
+name: Build Release artifacts
+
+permissions:
+  contents: write
+
+on:
+  # For release-please action to call, once the release is published
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+
+  # Manual trigger to re-run if failed during workflow_call
+  workflow_dispatch:
+    inputs:
+      tag:
+        required: true
+        type: string
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      artifacts_matrix: ${{ steps.plan.outputs.artifacts_matrix }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install dist
+        shell: bash
+        run: "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.31.0/cargo-dist-installer.sh | sh"
+
+      - name: Cache dist
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cargo-dist-cache
+          path: ~/.cargo/bin/dist
+          retention-days: 1
+
+      - name: Run dist plan
+        id: plan
+        run: |
+          dist plan --tag=${{ inputs.tag }} --output-format=json > plan-dist-manifest.json
+          cat plan-dist-manifest.json
+          echo "artifacts_matrix=$(jq -c '.ci.github.artifacts_matrix' plan-dist-manifest.json)" >> "$GITHUB_OUTPUT"
+
+  build-local-artifacts:
+    name: Build (${{ join(matrix.targets, ', ') }})
+    needs:
+      - plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan.outputs.artifacts_matrix) }}
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container && matrix.container.image || null }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: enable windows longpaths
+        run: git config --global core.longpaths true
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Rust non-interactively if not already installed
+        if: ${{ matrix.container }}
+        run: |
+          if ! command -v cargo > /dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          fi
+
+      - name: Install dist
+        run: ${{ matrix.install_dist.run }}
+
+      - name: Install dependencies
+        if: ${{ matrix.packages_install }}
+        run: ${{ matrix.packages_install }}
+
+      - name: Build artifacts
+        run: dist build --tag=${{ inputs.tag }} --print=linkage --output-format=json ${{ matrix.dist_args }} > dist-manifest.json
+
+      - name: Get Artifacts paths
+        id: cargo-dist-paths
+        shell: bash
+        run: |
+          echo "paths<<EOF" >> "$GITHUB_OUTPUT"
+          dist print-upload-files-from-manifest --manifest dist-manifest.json >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-artifacts-build-local-${{ join(matrix.targets, '_') }}
+          path: ${{ steps.cargo-dist-paths.outputs.paths }}
+          retention-days: 1
+
+  build-global-artifacts:
+    name: Build Global Artifacts
+    needs:
+      - plan
+      - build-local-artifacts
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install cached dist
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cargo-dist-cache
+          path: ~/.cargo/bin/
+      - run: chmod +x ~/.cargo/bin/dist
+
+      # Get all the local artifacts for the global tasks to use (for e.g. checksums)
+      - name: Fetch local artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: artifacts-*
+          path: target/distrib/
+          merge-multiple: true
+
+      - name: Get Artifacts paths
+        id: cargo-dist-paths
+        shell: bash
+        run: |
+          dist build --tag=${{ inputs.tag }} --output-format=json "--artifacts=global" > dist-manifest.json
+          echo "paths<<EOF" >> "$GITHUB_OUTPUT"
+          jq --raw-output ".upload_files[]" dist-manifest.json >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-artifacts-build-global
+          path: ${{ steps.cargo-dist-paths.outputs.paths }}
+          retention-days: 1
+
+  publish-artifacts:
+    needs:
+      - plan
+      - build-local-artifacts
+      - build-global-artifacts
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install cached dist
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cargo-dist-cache
+          path: ~/.cargo/bin/
+      - run: chmod +x ~/.cargo/bin/dist
+
+      - name: Generate dist release manifest
+        id: host
+        shell: bash
+        run: |
+          dist host --tag=${{ inputs.tag }} --steps=upload --steps=release --output-format=json > dist-manifest.json
+          cat dist-manifest.json
+          echo "manifest=$(jq -c "." dist-manifest.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch built artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: dist-artifacts-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Prepare Release Body
+        env:
+          ANNOUNCEMENT_BODY: "${{ fromJson(steps.host.outputs.manifest).announcement_github_body }}"
+        run: |
+          # Write and read notes from a file to avoid quoting breaking things
+          echo "$ANNOUNCEMENT_BODY" > $RUNNER_TEMP/announcement.txt
+
+          # Remove the Release notes from dist announcement
+          # Extracting only the installer contents, the rest of the contents are
+          # published by the release-please-action
+          sed -n '/^## Install/,$p' $RUNNER_TEMP/announcement.txt > $RUNNER_TEMP/notes.txt
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ inputs.tag }}
+          files: artifacts/*
+          body_path: ${{ runner.temp }}/notes.txt
+          append_body: true
