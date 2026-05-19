@@ -9,7 +9,8 @@ fn cocox() -> Command {
 
 fn write_temp(contents: &str) -> NamedTempFile {
     let mut file = NamedTempFile::new().expect("create temp file");
-    file.write_all(contents.as_bytes()).expect("write temp file");
+    file.write_all(contents.as_bytes())
+        .expect("write temp file");
     file
 }
 
@@ -154,7 +155,9 @@ fn missing_file_fails() {
         .arg("/nonexistent/path/commit-msg.txt")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("failed to read commit message file"));
+        .stderr(predicate::str::contains(
+            "failed to read commit message file",
+        ));
 }
 
 // --- --hash ---------------------------------------------------------------
@@ -194,6 +197,17 @@ fn no_args_fails_with_clap_error() {
 }
 
 #[test]
+fn to_hash_only_fails() {
+    cocox()
+        .arg("--to-hash")
+        .arg("HEAD")
+        .assert()
+        .failure()
+        .code(2)
+        .stderr(predicate::str::contains("required"));
+}
+
+#[test]
 fn message_and_file_together_fail() {
     let file = write_temp("feat: a body");
     cocox()
@@ -213,6 +227,70 @@ fn file_and_hash_together_fail() {
         .arg("--file")
         .arg(file.path())
         .arg("--hash")
+        .arg("HEAD")
+        .assert()
+        .failure()
+        .code(2)
+        .stderr(predicate::str::contains("cannot be used"));
+}
+
+#[test]
+fn message_and_hash_together_fail() {
+    cocox()
+        .arg("feat: something")
+        .arg("--hash")
+        .arg("HEAD")
+        .assert()
+        .failure()
+        .code(2)
+        .stderr(predicate::str::contains("cannot be used"));
+}
+
+#[test]
+fn message_and_from_hash_together_fail() {
+    cocox()
+        .arg("feat: something")
+        .arg("--from-hash")
+        .arg("HEAD")
+        .assert()
+        .failure()
+        .code(2)
+        .stderr(predicate::str::contains("cannot be used"));
+}
+
+#[test]
+fn hash_and_from_hash_together_fail() {
+    cocox()
+        .arg("--hash")
+        .arg("HEAD")
+        .arg("--from-hash")
+        .arg("HEAD")
+        .assert()
+        .failure()
+        .code(2)
+        .stderr(predicate::str::contains("cannot be used"));
+}
+
+#[test]
+fn to_hash_with_hash_together_fail() {
+    // --to-hash requires --from-hash specifically, not just any input arg
+    cocox()
+        .arg("--hash")
+        .arg("HEAD")
+        .arg("--to-hash")
+        .arg("HEAD")
+        .assert()
+        .failure()
+        .code(2)
+        .stderr(predicate::str::contains("cannot be used"));
+}
+
+#[test]
+fn to_hash_with_message_fails() {
+    // --to-hash requires --from-hash, passing a message doesn't satisfy it
+    cocox()
+        .arg("feat: something")
+        .arg("--to-hash")
         .arg("HEAD")
         .assert()
         .failure()
