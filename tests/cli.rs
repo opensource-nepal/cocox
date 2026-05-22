@@ -148,6 +148,20 @@ fn file_with_empty_contents_aborts() {
 }
 
 #[test]
+fn file_with_whitespace_only_content_aborts() {
+    let file = write_temp("   \n\t  ");
+    cocox()
+        .arg("--file")
+        .arg(file.path())
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "Aborting commit due to empty commit message",
+        ));
+}
+
+#[test]
 fn missing_file_fails() {
     cocox()
         .arg("--file")
