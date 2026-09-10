@@ -2,6 +2,10 @@
 name = "cocox"
 version = "0.0.0"
 edition = "2024"
+# Comes from edition 2024, not from any language feature in the source.
+# Verified: `cargo +1.84.0 build` fails with "feature `edition2024` is required".
+# Raise this in the same commit that introduces a newer feature.
+rust-version = "1.85"
 license = "GPL-3.0"
 repository = "https://github.com/opensource-nepal/cocox"
 homepage = "https://github.com/opensource-nepal/cocox"
@@ -21,6 +25,12 @@ assert_cmd = "2"
 predicates = "3"
 serial_test = "3"
 tempfile = "3"
+
+# Parity guardrails. See clippy.toml for the method list and the reasons.
+# Declared here so a plain `cargo clippy` fails on its own, without needing
+# `-D warnings` on the command line.
+[lints.clippy]
+disallowed_methods = "deny"
 
 # The profile that 'dist' will build with
 [profile.dist]

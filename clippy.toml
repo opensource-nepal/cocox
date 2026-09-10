@@ -1,0 +1,24 @@
+# Parity guardrails, enforced by `clippy::disallowed_methods`.
+#
+# cocox must behave like upstream Python commitlint. The methods below look like
+# the obvious translation of a Python call and quietly mean something different.
+# See the porting rules in AGENTS.md for the full reasoning.
+#
+# To use one deliberately, add `#[allow(clippy::disallowed_methods)]` with a
+# comment that says why Python and Rust agree at that spot.
+
+disallowed-methods = [
+  # Python `len()` on a str counts code points; Rust `len()` counts UTF-8 bytes.
+  # "feat: नमस्ते संसार" is 18 characters and 40 bytes, so a byte count rejects a
+  # header that upstream accepts. Use `chars().count()`.
+  { path = "str::len", reason = "counts UTF-8 bytes; upstream counts characters. Use chars().count()" },
+  { path = "std::string::String::len", reason = "counts UTF-8 bytes; upstream counts characters. Use chars().count()" },
+]
+
+# Not enabled yet, because `src/utils.rs` still calls it and fixing that changes
+# behavior, so it belongs in its own pull request. Enable this entry in the same
+# commit that gives `utils` a splitlines-equivalent helper:
+#
+#   { path = "str::lines", reason = "splits on \\n only; Python splitlines() also breaks on \\r \\x0b \\x0c \\x1c-\\x1e \\x85 U+2028 U+2029" },
+#
+# See "Known divergences from upstream" in AGENTS.md, item 3.

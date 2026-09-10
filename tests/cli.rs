@@ -1,12 +1,12 @@
 mod common;
 
 use assert_cmd::Command;
+use cocox::messages::{VALIDATION_FAILED, VALIDATION_SUCCESSFUL};
 use common::TestRepo;
 use predicates::prelude::*;
 use serial_test::serial;
 use std::io::Write;
 use tempfile::NamedTempFile;
-use cocox::messages::{VALIDATION_FAILED, VALIDATION_SUCCESSFUL};
 
 fn cocox() -> Command {
     Command::cargo_bin("cocox").expect("cocox binary should be built")

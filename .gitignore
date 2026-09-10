@@ -1,1 +1,4 @@
 /target
+
+# Personal, per-developer editor and agent settings
+.claude/settings.local.json
