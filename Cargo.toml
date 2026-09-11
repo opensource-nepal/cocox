@@ -1,6 +1,6 @@
 [package]
 name = "cocox"
-version = "0.0.0"
+version = "0.1.0"
 edition = "2024"
 # Comes from edition 2024, not from any language feature in the source.
 # Verified: `cargo +1.84.0 build` fails with "feature `edition2024` is required".
