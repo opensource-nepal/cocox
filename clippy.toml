@@ -21,4 +21,5 @@ disallowed-methods = [
 #
 #   { path = "str::lines", reason = "splits on \\n only; Python splitlines() also breaks on \\r \\x0b \\x0c \\x1c-\\x1e \\x85 U+2028 U+2029" },
 #
-# See "Known divergences from upstream" in AGENTS.md, item 3.
+# Python splitlines() also breaks on \r \x0b \x0c \x1c-\x1e \x85 U+2028 U+2029,
+# while Rust lines() only breaks on \n.

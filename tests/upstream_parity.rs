@@ -4,14 +4,12 @@
 //! One row per upstream row, in the same order, with the same three columns:
 //! (commit message, expected success, expected errors).
 //!
-//! `cocox` has no per-field validator yet, so only the success column is
-//! asserted here. The error strings are still listed verbatim, because they are
-//! the exact texts the linter must produce once the detailed validator lands.
-//! When it does, add a second test that asserts the third column too.
+//! The success column and error strings are both asserted against upstream.
 //!
 //! Keep this table in step with upstream. If upstream adds a row, add it here.
 
-use cocox::linter::{LintOutcome, lint_commit_message};
+use cocox::config::OutputConfig;
+use cocox::linter::{LintOptions, LintOutcome, lint_commit_message_with_errors};
 
 // Verbatim from upstream `src/commitlint/messages.py`.
 const INCORRECT_FORMAT_ERROR: &str =
@@ -142,18 +140,30 @@ fn fixture_table_has_all_upstream_rows() {
     );
 }
 
-/// Every row must reach the same pass or fail verdict as upstream.
+/// Every row must reach the same pass or fail verdict as upstream,
+/// and failed rows must contain all upstream error strings.
 #[test]
 fn matches_upstream_linter_fixtures() {
+    let options = LintOptions::default();
+    let output = OutputConfig::new(true, false);
     let mut failures = Vec::new();
 
-    for (message, expected_success, _) in LINTER_FIXTURE_PARAMS {
-        let outcome = lint_commit_message(message);
-        let success = matches!(outcome, LintOutcome::Valid | LintOutcome::Ignored);
+    for (message, expected_success, expected_errors) in LINTER_FIXTURE_PARAMS {
+        let result = lint_commit_message_with_errors(message, &options, &output);
+        let success = matches!(result.outcome, LintOutcome::Valid | LintOutcome::Ignored);
         if success != *expected_success {
             failures.push(format!(
-                "{message:?}: upstream success={expected_success}, cocox={outcome:?}"
+                "{message:?}: upstream success={expected_success}, cocox={:?}",
+                result.outcome
             ));
+            continue;
+        }
+        if !expected_errors.is_empty() {
+            for expected in *expected_errors {
+                if !result.errors.iter().any(|e| e == *expected) {
+                    failures.push(format!("{message:?}: missing upstream error {expected:?}"));
+                }
+            }
         }
     }
 

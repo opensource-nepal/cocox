@@ -1,7 +1,10 @@
 pub mod cli;
 pub mod command;
+pub mod config;
+pub mod console;
 pub mod constants;
 pub mod git_helpers;
 pub mod linter;
 pub mod messages;
 pub mod utils;
+pub mod validators;

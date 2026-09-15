@@ -1,6 +1,8 @@
+pub const COMMIT_HEADER_MAX_LENGTH: usize = 72;
+
 pub const COMMIT_TYPES: [&str; 12] = [
-    "build", "bump", "ci", "docs", "feat", "fix", "perf", "refactor", "style", "test", "chore",
-    "revert",
+    "build", "ci", "docs", "feat", "fix", "perf", "refactor", "style", "test", "chore", "revert",
+    "bump",
 ];
 
 pub const IGNORE_COMMIT_PATTERNS: [&str; 9] = [
@@ -11,6 +13,6 @@ pub const IGNORE_COMMIT_PATTERNS: [&str; 9] = [
     r"^Merge remote-tracking branch(\s*)(.*)$",
     r"^Automatic merge(.*)$",
     r"^Auto-merged (.*?) into (.*)$",
-    r"[Bb]ump [^\s]+ from [^\s]+ to [^\s]+",
+    r"^[Bb]ump [^\s]+ from [^\s]+ to [^\s]+",
     r"^[Ii]nitial [Cc]ommit$",
 ];
