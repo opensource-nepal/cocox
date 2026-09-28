@@ -242,6 +242,32 @@ mod tests {
     }
 
     #[test]
+    fn simple_validator_rejects_descriptions_under_minimum_length() {
+        let options = LintOptions {
+            skip_detail: true,
+            ..default_options()
+        };
+        for message in ["feat: a", "feat: ab"] {
+            assert_eq!(
+                lint_commit_message(message, &options, &silent_output()),
+                LintOutcome::Invalid
+            );
+        }
+    }
+
+    #[test]
+    fn simple_validator_accepts_description_at_minimum_length() {
+        let options = LintOptions {
+            skip_detail: true,
+            ..default_options()
+        };
+        assert_eq!(
+            lint_commit_message("feat: abc", &options, &silent_output()),
+            LintOutcome::Valid
+        );
+    }
+
+    #[test]
     fn rejects_description_with_trailing_period() {
         assert_eq!(
             lint_commit_message(
