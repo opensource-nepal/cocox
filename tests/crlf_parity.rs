@@ -10,11 +10,8 @@
 //! cocox reads raw bytes, so this is easy to regress: add a validator that
 //! looks for `\n` and a `\r\n` message walks straight past it.
 //!
-//! Normalization belongs to the input readers only. Upstream does NOT normalize
-//! a message given as a command-line argument, so cocox must not either. Verified:
-//! `commitlint $'feat: add\r\nbody line'` exits 0. cocox exits 1 on that same input
-//! today, for the separate reason that it implements only upstream's simple pattern,
-//! so do not read this as the two agreeing on argument handling.
+//! Normalization belongs to the input readers only. Upstream does not normalize a
+//! command-line argument, and neither does cocox. Both accept `feat: add\r\nbody line`.
 //!
 //! These tests never change the process working directory, so they need no
 //! `#[serial]`. Each one points the binary at its own temporary repository.
@@ -76,30 +73,59 @@ fn cocox_in(dir: &Path) -> Command {
     cmd
 }
 
+fn stderr_without_ansi(output: &std::process::Output) -> String {
+    String::from_utf8_lossy(&output.stderr)
+        .replace("\x1b[91m", "")
+        .replace("\x1b[0m", "")
+}
+
+const CRLF_DIAGNOSTIC: &str = "⧗ Input:
+feat: abcd
+body line
+
+✖ Found 1 error(s).
+- Description cannot contain line breaks.
+";
+
 #[test]
 fn crlf_commit_is_rejected_via_hash() {
     let (dir, sha) = repo_with_crlf_commit();
-    cocox_in(dir.path())
+    let output = cocox_in(dir.path())
         .args(["--hash", &sha])
         .assert()
-        .failure();
+        .failure()
+        .code(1)
+        .get_output()
+        .clone();
+
+    assert_eq!(stderr_without_ansi(&output), CRLF_DIAGNOSTIC);
 }
 
 #[test]
 fn crlf_commit_is_rejected_via_from_hash() {
     let (dir, sha) = repo_with_crlf_commit();
-    cocox_in(dir.path())
+    let output = cocox_in(dir.path())
         .args(["--from-hash", &sha])
         .assert()
-        .failure();
+        .failure()
+        .code(1)
+        .get_output()
+        .clone();
+
+    assert_eq!(stderr_without_ansi(&output), format!("{CRLF_DIAGNOSTIC}\n"));
 }
 
 #[test]
 fn crlf_message_file_is_rejected() {
     let (dir, _sha) = repo_with_crlf_commit();
     let message_file = dir.path().join("msg.txt");
-    cocox_in(dir.path())
+    let output = cocox_in(dir.path())
         .args(["--file", message_file.to_str().expect("utf-8 path")])
         .assert()
-        .failure();
+        .failure()
+        .code(1)
+        .get_output()
+        .clone();
+
+    assert_eq!(stderr_without_ansi(&output), CRLF_DIAGNOSTIC);
 }

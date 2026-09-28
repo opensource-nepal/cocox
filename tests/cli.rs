@@ -26,6 +26,12 @@ fn write_temp(contents: &str) -> NamedTempFile {
     file
 }
 
+fn stderr_without_ansi(stderr: &[u8]) -> String {
+    String::from_utf8_lossy(stderr)
+        .replace("\x1b[91m", "")
+        .replace("\x1b[0m", "")
+}
+
 // --- positional message ----------------------------------------------------
 
 #[test]
@@ -1346,6 +1352,24 @@ fn file_with_lone_cr_normalized() {
     // Lone \r in file content should be normalized to \n before linting.
     let file = write_temp("feat: add new feature\r\rbody line");
     cocox().arg("--file").arg(file.path()).assert().success();
+}
+
+#[test]
+fn file_with_lone_cr_between_header_and_body_is_rejected() {
+    let file = write_temp("feat: add new feature\rbody line");
+    let output = cocox()
+        .arg("--file")
+        .arg(file.path())
+        .assert()
+        .failure()
+        .code(1)
+        .get_output()
+        .clone();
+
+    assert_eq!(
+        stderr_without_ansi(&output.stderr),
+        "⧗ Input:\nfeat: add new feature\nbody line\n\n✖ Found 1 error(s).\n- Description cannot contain line breaks.\n"
+    );
 }
 
 // --- CRLF header-length test ----------------------------------------------
