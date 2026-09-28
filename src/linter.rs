@@ -133,7 +133,7 @@ mod tests {
         );
         assert_eq!(
             lint_commit_message(
-                "build(deps-dev): bump @babel/traverse from 7.22.17 to 7.24.0",
+                "build(deps-dev): upgrade babel traverse to 7.24.0",
                 &default_options(),
                 &silent_output()
             ),
