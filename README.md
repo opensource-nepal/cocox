@@ -57,3 +57,5 @@ Options:
   -V, --version
           Print version
 ```
+
+ANSI colors are emitted only when the corresponding output stream is a terminal. A non-empty `NO_COLOR` environment variable disables them.

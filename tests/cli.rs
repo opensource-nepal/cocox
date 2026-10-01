@@ -54,6 +54,33 @@ fn valid_message_with_body_succeeds() {
 }
 
 #[test]
+fn redirected_output_disables_ansi_colors() {
+    let success = cocox()
+        .arg("feat: plain output")
+        .output()
+        .expect("run cocox with redirected output");
+    assert!(success.status.success());
+    let stdout = String::from_utf8_lossy(&success.stdout);
+    assert!(stdout.contains(VALIDATION_SUCCESSFUL));
+    assert!(
+        !stdout.contains("\x1b["),
+        "stdout contains ANSI color codes: {stdout:?}"
+    );
+
+    let failure = cocox()
+        .arg("not a conventional commit")
+        .output()
+        .expect("run cocox with redirected error output");
+    assert_eq!(failure.status.code(), Some(1));
+    let stderr = String::from_utf8_lossy(&failure.stderr);
+    assert!(stderr.contains(INCORRECT_FORMAT_ERROR));
+    assert!(
+        !stderr.contains("\x1b["),
+        "stderr contains ANSI color codes: {stderr:?}"
+    );
+}
+
+#[test]
 fn invalid_message_fails() {
     cocox()
         .arg("not a conventional commit")

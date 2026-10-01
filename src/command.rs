@@ -6,6 +6,8 @@ use crate::linter::{LintOptions, LintOutcome, lint_commit_message_with_errors};
 use crate::messages::{VALIDATION_FAILED, VALIDATION_SUCCESSFUL};
 use crate::utils::{normalize_newlines, remove_diff_from_commit_message};
 use anyhow::{Context, Result};
+use std::env;
+use std::io::{self, IsTerminal};
 
 fn read_file(file: &str) -> Result<String> {
     let content = std::fs::read_to_string(file)
@@ -108,7 +110,12 @@ fn handle_multiple_commit_messages(
 }
 
 pub fn run(args: Cli) -> Result<()> {
-    let output = OutputConfig::new(args.quiet, args.verbose);
+    let no_color = env::var_os("NO_COLOR");
+    let output = OutputConfig {
+        color_stdout: crate::config::should_color(io::stdout().is_terminal(), no_color.as_deref()),
+        color_stderr: crate::config::should_color(io::stderr().is_terminal(), no_color.as_deref()),
+        ..OutputConfig::new(args.quiet, args.verbose)
+    };
     let lint_options = LintOptions {
         skip_detail: args.skip_detail,
         hide_input: args.hide_input,
